@@ -1,0 +1,83 @@
+//Designed to run locally
+
+
+var Twit = require('twit');
+var fs = require('fs'),
+path=require('path');
+var WordnikAPI= "Wordnik_key_here"
+var Client = require('node-rest-client').Client;
+global.RandWord
+
+var T = new Twit({
+  consumer_key:         '', 
+  consumer_secret:      '',
+  access_token:         '',
+  access_token_secret:  ''
+});
+
+
+function getRandomWord(cb) {
+	
+	var client= new Client();
+	//retrieves a random word between 4-10 characters with a dictionary definition 
+	var URL= "http://api.wordnik.com:80/v4/words.json/randomWord?hasDictionaryDef=true&minCorpusCount=0&maxCorpusCount=-1&minDictionaryCount=1&maxDictionaryCount=-1&minLength=4&maxLength=10&api_key=" + WordnikAPI;
+	
+	var args = {headers: {'Accept':'application/json'}};
+	client.get(URL, args, function (data, response) {
+		if (response.statusCode === 200) {
+			cb(data.word)
+			
+		}
+	});
+};
+
+//Gets the definition of the random word by using a callback to the Random Word function (Bit messy I know)
+
+setInterval(function() {
+  try {
+
+getRandomWord(function getDef(RandWord) {
+	
+	
+	
+	var client= new Client();
+	var URL="http://api.wordnik.com:80/v4/word.json/" + RandWord + "/definitions?limit=1&includeRelated=false&useCanonical=true&includeTags=false&api_key=" +WordnikAPI
+	var args = {headers: {'Accept':'application/json'}};
+	client.get(URL, args, function (data, response) {
+		//In addition to checking for a sucessful response, also eliminates plural words from being used
+		
+		if (response.statusCode === 200 && data[0].text.search("Plural") === -1) {
+			//Checks the tweet will be within the character limit
+			if (RandWord.length + data[0].text.length <= 138) {
+			console.log(data[0].word)
+			console.log(data[0].text)
+			var statement= data[0].word + ": " + data[0].text
+			T.post('statuses/update', { status: statement }, function(err, data, response) {
+				console.log(statement)
+				});
+			}
+		}
+		else {
+			console.log("Error!")
+		}
+	});
+  });
+  }
+  
+	catch (e) {
+    console.log(e);
+  }
+},60000);
+
+
+
+    
+  
+ 
+
+
+	
+				
+
+
+
